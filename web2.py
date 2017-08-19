@@ -27,6 +27,7 @@ class WSGIServer(object):
 
 		self.headers_set = []
 
+	#first of all, we need an application
 	def set_app(self, application):
 		self.application = application
 
@@ -42,7 +43,7 @@ class WSGIServer(object):
 		self.request_data = request_data = self.client_connection.recv(1024)
 
 		print(''.join(
-			'< {lint}\n'.format(line=line)
+			'< {line}\n'.format(line=line)
 			for line in request_data.splitlines()
 		))
 
@@ -74,7 +75,7 @@ class WSGIServer(object):
 		env['wsgi.version'] = (1, 0)
 		env['wsgi.url_scheme'] = 'http'
 		env['wsgi.input'] = StringIO.StringIO(self.request_data)
-		env['wsgi.errors'] sys.stderr
+		env['wsgi.errors'] = sys.stderr
 		env['wsgi.multithread'] = False
 		env['wsgi.multiprocess'] = False
 		env['wsgi.run_once'] = False
@@ -86,7 +87,7 @@ class WSGIServer(object):
 
 		return env
 
-	def start_response(self, status, response_headers, exc_info=None);
+	def start_response(self, status, response_headers, exc_info=None):
 		server_headers = [
 			('Date', '22:04'),
 			('Server', 'WSGIServer 0.3'),
@@ -111,3 +112,25 @@ class WSGIServer(object):
 			self.client_connection.sendall(response)
 		finally:
 			self.client_connection.close()
+
+SERVER_ADDRESS = (HOST, PORT) = '', 8888
+
+def make_server(server_address, application):
+	server = WSGIServer(server_address)
+	server.set_app(application)
+	return server
+
+if __name__ == '__main__':
+	if len(sys.argv) < 2:
+		sys.exit('Provide a WSGI application object as module : callable')
+
+	#get application by path
+	app_path = sys.argv[1]
+	module, application = app_path.split(':')
+	module = __import__(module)
+	application = getattr(module, application)
+
+	httpd = make_server(SERVER_ADDRESS, application)
+	print('WSGIServer: Serving HTTP on port {port} ...\n'.format(port=PORT))
+	httpd.serve_forever()
+
